@@ -6,7 +6,7 @@ import numpy as np
 
 class SimpleRegressor:
     def __init__(self):
-        raise NotImplementedError
+        self.weights_ = np.zeros(2)  # a vector with the two parameters of our model
 
     def predict(self, x):
         return self.weights_[0] + x * self.weights_[1]
@@ -24,11 +24,15 @@ class SimpleRegressor:
         self.y_predicted_[0] = self.predict(x)
 
         for i in range(steps):
+            error = self.predict(x) - y
+            gradient_theta_0 = 2 * error.mean()
+            gradient_theta_1 = 2 * (error * x).mean()
             # here: update self.weights_?
+            self.weights_[0] -= lr * gradient_theta_0
+            self.weights_[1] -= lr * gradient_theta_1
+
             self.y_predicted_[i + 1] = self.predict(x)
-
-        raise NotImplementedError  # you should override this method!
-
+            
     def show_training(self):
         show_regression_training_(self.x_train_, self.y_train_, self.y_predicted_)
 
