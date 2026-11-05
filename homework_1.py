@@ -216,6 +216,40 @@ import matplotlib.pyplot as plt  # making plots
 # > `SimpleRegressor.show_training()`. Find a learning rate that makes the loss
 # > decrease.
 
+# %% 
+
+class SimpleRegressor:
+    def __init__(self):
+        self.weights_ = np.zeros(2)  # a vector with the two parameters of our model
+
+    def predict(self, x):
+        return self.weights_[0] + x * self.weights_[1]
+
+    def fit(self, x, y, lr: float, steps: int = 20) -> None:
+        # x and y are vectors of the same length
+
+        self.weights_ = np.zeros(2)  # a vector with the two parameters of our model
+
+        # we keep copies of the x, y and the predicted outputs at each
+        # iteration to use them in show_training() later
+        self.x_train_ = x.copy()
+        self.y_train_ = y.copy()
+        self.y_predicted_ = np.zeros((steps + 1, y.shape[0]))
+        self.y_predicted_[0] = self.predict(x)
+
+        for i in range(steps):
+            error = self.predict(x) - y
+            gradient_theta_0 = 2 * error.mean()
+            gradient_theta_1 = 2 * (error * x).mean()
+            # here: update self.weights_?
+            self.weights_[0] -= lr * gradient_theta_0
+            self.weights_[1] -= lr * gradient_theta_1
+
+            self.y_predicted_[i + 1] = self.predict(x)
+            
+    def show_training(self):
+        show_regression_training_(self.x_train_, self.y_train_, self.y_predicted_)
+
 # %%
 x, y = iml.load_powerplant()
 regressor = iml.SimpleRegressor()
@@ -355,102 +389,49 @@ print("Accuracy (%):", best_accuracy * 100)
 # > produced. Using scikit-learn, run both $k$-means clustering and DBSCAN on
 # > this dataset. Which method produces more reasonable "clusters"?
 
-# %%
-# Load the ULU dataset
-ulu = iml.load_ulu()
-
-print("Dataset shape:", ulu.shape)
-print("First 5 observations:")
-print(ulu[:5])
 
 
 # %%
-# Standardize the data
-from sklearn.preprocessing import StandardScaler
-
-scaler = StandardScaler()
-ulu_scaled = scaler.fit_transform(ulu)
-
-
-# %%
-# Apply PCA
 from sklearn.decomposition import PCA
 
-pca = PCA(n_components=2)
-ulu_pca = pca.fit_transform(ulu_scaled)
+data = iml.load_ulu()
+print(data.shape)
 
-print("Explained variance ratio:", pca.explained_variance_ratio_)
-print("Total explained variance:", sum(pca.explained_variance_ratio_))
+pca = PCA(n_components=3)
+z = pca.fit_transform(data)
+print("explained variance ratio:", pca.explained_variance_ratio_.round(4))
 
-
-# %%
-# Visualize the dataset using PCA
-plt.figure(figsize=(12, 5))
-plt.scatter(ulu_pca[:, 0], ulu_pca[:, 1], s=5, color="red")
-plt.xlabel("First principal component")
-plt.ylabel("Second principal component")
-plt.title("ULU dataset - PCA")
-plt.axis("equal")
+fig, axs = plt.subplots(1, 2, figsize=(14, 4))
+axs[0].scatter(z[:, 0], z[:, 1], s=1)
+axs[0].set(title="Projection onto PC1 and PC2", xlabel="PC1", ylabel="PC2", aspect="equal")
+axs[1].hist(z[:, 2], bins=60)
+axs[1].set(title="Histogram of PC3", xlabel="PC3", ylabel="number of points")
 plt.show()
 
-
 # %%
-# Visualize the original dataset
-plt.figure(figsize=(12, 5))
-plt.scatter(ulu[:, 0], ulu[:, 1], s=5, color="red")
-plt.xlabel("X")
-plt.ylabel("Y")
-plt.title("ULU dataset - Original data")
-plt.axis("equal")
+fig, ax = plt.subplots(figsize=(14, 4))
+sc = ax.scatter(z[:, 0], z[:, 1], c=z[:, 2], s=2, cmap="coolwarm")
+ax.set(title="Projection onto PC1 and PC2, coloured by PC3", xlabel="PC1", ylabel="PC2", aspect="equal")
+plt.colorbar(sc, ax=ax, label="PC3")
 plt.show()
 
-
 # %%
-# Apply K-means clustering
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, DBSCAN
 
-kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-kmeans_labels = kmeans.fit_predict(ulu_scaled)
+kmeans_labels = KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(data)
+dbscan_labels = DBSCAN(eps=0.3, min_samples=10).fit_predict(data)
+print("k-means cluster sizes:", np.bincount(kmeans_labels))
+print("DBSCAN cluster sizes:", np.bincount(dbscan_labels[dbscan_labels >= 0]), "noise:", np.sum(dbscan_labels == -1))
 
-plt.figure(figsize=(12, 5))
-plt.scatter(ulu[:, 0], ulu[:, 1], c=kmeans_labels, s=5, cmap="coolwarm")
-plt.xlabel("X")
-plt.ylabel("Y")
-plt.title("ULU dataset - K-means")
-plt.axis("equal")
+fig, axs = plt.subplots(2, 1, figsize=(14, 8))
+axs[0].scatter(z[:, 0], z[:, 1], c=kmeans_labels, s=2, cmap="tab10")
+axs[0].set(title="k-means (k = 2)", xlabel="PC1", ylabel="PC2", aspect="equal")
+axs[1].scatter(z[:, 0], z[:, 1], c=dbscan_labels, s=2, cmap="tab10")
+axs[1].set(title="DBSCAN (eps = 0.3, min_samples = 10)", xlabel="PC1", ylabel="PC2", aspect="equal")
+plt.tight_layout()
 plt.show()
-
-print("K-means cluster sizes:")
-print(pd.Series(kmeans_labels).value_counts().sort_index())
-
-
-# %%
-# Apply DBSCAN clustering
-from sklearn.cluster import DBSCAN
-
-dbscan = DBSCAN(eps=0.3, min_samples=10)
-dbscan_labels = dbscan.fit_predict(ulu_scaled)
-
-plt.figure(figsize=(12, 5))
-plt.scatter(ulu[:, 0], ulu[:, 1], c=dbscan_labels, s=5, cmap="coolwarm")
-plt.xlabel("X")
-plt.ylabel("Y")
-plt.title("ULU dataset - DBSCAN")
-plt.axis("equal")
-plt.show()
-
-print("DBSCAN cluster sizes:")
-print(pd.Series(dbscan_labels).value_counts().sort_index())
 
 # %% [markdown]
-# The projection onto the first two columns shows a parallelogram point cloud with the letters "uni.lu" visible.
-# This suggests the data were generated by placing points in a rectangular region and removing points in the shape of the letters.
-# This is an inference from the plot because the plot alone does not establish the exact generation process.
-#
-# We standardized the three columns and applied PCA. The first two principal components explain about 97.29% of the variance,
-# so the 2D PCA plot preserves most of the variation in the data. Its rotation relative to the column projection
-# is expected, because PCA uses new axes.
-#
-# K-means (k=3) divides the point cloud into three broad regions that cut across the letter pattern.
-# DBSCAN is density-based: the cluster with 1808 points is the letters "uni.lu", the cluster with 6935 points is the background, and the 35-point cluster is the dot of the "i".
-# It recovers the letters, while K-means cuts across them, so we consider DBSCAN the more reasonable method here.
+# PCA. We applied PCA with 3 components. The first component explains 87.3% of the variance, the second 12.0% and the third only 0.7%. When we plot the first two components, the points fill a rectangle, so the data is almost flat, like a plate. But the histogram of the third component has two separate peaks, about 1 apart. This means the points are in two parallel layers. When we colour the PCA plot by the third component, the smaller layer shows the text uni.lu. How the data set was produced. We think the data was made from a black-and-white image of the text “uni.lu”. Every pixel became a point on a grid (the points are about 0.1 apart). The background points and the letter points were put at two different heights, about 1 apart. Then some noise was added and the whole thing was rotated in 3D, so the two layers do not line up with the original x, y, z axes. PCA turns it back: the first two components are the directions along the plate, and the third component is the direction between the two layers. Interestingly, the text is in the component with the smallest variance, so if we only kept the first two components we would lose the text.
+# Clustering. We used k-means with k = 2, because there are two layers. But k-means just cuts the plate into a left half and a right half (4389 points each), and both halves contain background and letters. This is because k-means looks for round groups of points, and the plate is much longer than the distance between the layers. DBSCAN with eps = 0.3 and min_samples = 10 works much better. It finds one cluster for the background (6935 points) and one cluster for each separate part of the text (u, n, the stem of the i, the dot of the i, the period, l, u), with no noise points. It works because points in the same layer are close to each other (about 0.1 apart), but the two layers are about 1 apart, so with eps = 0.3 DBSCAN never connects the two layers. Also, we did not have to tell DBSCAN how many clusters to find.
+# Conclusion: DBSCAN gives much more reasonable clusters than k-means.
