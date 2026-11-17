@@ -15,7 +15,7 @@ from iml.dungeon_maker import make_treasure_room, make_underground_maze, make_un
 
 
 # %% [markdown]
-# **Group members:** [your names]
+# **Group members:** Emin Cesme, Valentine Scillia, Paulina Pervukhina
 
 # %% [markdown]
 # ## Part 1: Gridworld Environment
@@ -34,6 +34,7 @@ def my_reward_11(state, action, next_state, dungeon):
 def my_action_11(state, q_value):
 	# <implement your action here>
 	# return ... (int)
+    return int(np.random.choice(4))
 
 def my_Q_update_11(agent, state, action, reward, next_state, dungeon):
     return None # use None for now
@@ -41,10 +42,7 @@ def my_Q_update_11(agent, state, action, reward, next_state, dungeon):
 treasure_room = make_treasure_room()
 vis_11 = DungeonVisualization(treasure_room)
 
-drunken_knight = DungeonAgent(n_states=treasure_room.n_states, 
-                             choose_action=my_action_11,
-                             reward_func=my_reward_11,
-                             update_q_values=my_Q_update_11)
+drunken_knight = DungeonAgent(n_states=treasure_room.n_states, choose_action=my_action_11,reward_func=my_reward_11,update_q_values=my_Q_update_11)
 
 # Run the agent for 1 episode & collect states, actions, rewards
 states, actions, rewards = drunken_knight.run_episode(treasure_room, nstep=10, gamma=1.0)
@@ -61,17 +59,26 @@ vis_11.show(states, actions, drunken_knight.q_values)
 # %% [markdown]
 # ### (c)
 # > Compute the theoretical probability distribution over a 2-step horizon analytically (without writing code) when you use the stochastic policy you implemented.
-#
+# For step 1 : 
+# P(s) = 1/2, P(A) = 1/4, P(B)= 1/4
+# For step 2 :
+# P(s)= 1/2*1/2+1/4*1/4+1/4*1/4 = 3/8
+# P(A)= 1/2*1/4+1/4*1/2 = 1/4
+# P(B)= 1/2*1/4+1/4*1/2 = 1/4
+# P(e) = 1/4*1/4+1/4*1/4 = 1/8
+# All probabilities sum to 1
 
 # %% [markdown]
 # ### (d)
 # > If you implement Q-learning with an episode length of 1 (`nstep = 1`) under current setup, will you manage to perform better? Why or why not? Explain your reasoning.
-#
+# nstep=1 technically means that the agent will only take 1 step per episode. But it actally makes zero steps because we do `range(nstep-1)` in `run_episode` function. So the agent receives no reward and is not able to learn and improve its performance for the next episodes.
 
 # %% [markdown]
 # ### (e)
 # > For a dungeon of width $N$ and height $M$, what is the minimum number of steps required to reach the goal from the starting position? Why? 
-#
+# If $N$ and $M$ are non-wall cells and the start and treasure are in opposite corners, the minimum is $(N-1)+(M-1)$ steps.
+# This is because the agent needs to move $N-1$ (whole width-1) steps in one direction and $M-1$(whole height-1) steps in the other direction to reach the goal.
+# If $N$ and $M$ include a outer wall border, the interior width and height are $N-2$ and $M-2$, so the opposite interior corners are $(N-3)+(M-3)$ steps apart. 
 
 # %% [markdown]
 # ---
@@ -89,23 +96,37 @@ def my_reward_12(state, action, next_state, dungeon):
 def my_action_12(state, q_values):
     return np.random.choice(4) 
 
+alpha = 0.1
+gamma = 1.0
+
 def my_Q_update_12(agent, state, action, reward, next_state, dungeon):
-	# <implement your Q update here>
-	# Hint: lecture 9, page 18 <20/29>
-	# return ... (float)
+    future_value = (
+        0.0 if next_state == dungeon.end
+        else np.max(agent.q_values[:, next_state])
+    )
+
+    old_value = agent.q_values[action, state]
+    target = reward + gamma * future_value
+    agent.q_values[action, state] = old_value + alpha * (target - old_value)
+
 
 underground_maze = make_underground_maze(p_slippery=0.0)
 vis_12 = DungeonVisualization(underground_maze)
 
-tricky_knight = DungeonAgent(n_states=underground_maze.n_states, 
-                             choose_action=my_action_12,
-                             reward_func=my_reward_12,
-                             update_q_values=my_Q_update_12)
+tricky_knight = DungeonAgent(n_states=underground_maze.n_states, choose_action=my_action_12, reward_func=my_reward_12, update_q_values=my_Q_update_12)
 
 training_reward = []
 # program your knight here
 # compute episodic reward
 # append "training_reward"
+q_snapshots = {}
+np.random.seed(12)  # For reproducibility
+
+for episode in range(200):
+    states, actions, rewards = tricky_knight.run_episode(underground_maze, nstep=30, gamma=1.0)
+    training_reward.append(sum(rewards))
+    if episode in (0,49,199):
+        q_snapshots[episode+1] = tricky_knight.q_values.copy()
 
 # plot "training_reward"
 vis_12.plot_training_reward(training_reward)
