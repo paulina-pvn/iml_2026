@@ -55,6 +55,9 @@ vis_11.show(states, actions, drunken_knight.q_values)
 # > Observe how you move and draw a Markov decision process (MDP) diagram for all four non-wall states.
 #
 # ![MDP Diagram](1.1b-diagram.jpg)
+#
+# S = start, A = top-right, B = dragon, E = treasure. The reward is +1 for A → E and 0 otherwise.
+
 
 # %% [markdown]
 # ### (c)
@@ -76,7 +79,7 @@ vis_11.show(states, actions, drunken_knight.q_values)
 # %% [markdown]
 # ### (d)
 # > If you implement Q-learning with an episode length of 1 (`nstep = 1`) under current setup, will you manage to perform better? Why or why not? Explain your reasoning.
-# > nstep=1 technically means that the agent will only take 1 step per episode. But it actally makes zero steps because we do `range(nstep-1)` in `run_episode` function. So the agent receives no reward and is not able to learn and improve its performance for the next episodes.
+# > No, the agent cannot improve its performance. With the corrected code (`range(nstep)`), the agent takes exactly one step per episode. However, reaching the treasure requires at least two steps, so the agent never receives a positive reward. Therefore, the Q-values remain 0, and the agent cannot learn a better policy.
 
 # %% [markdown]
 # ### (e)
@@ -187,6 +190,8 @@ for gamma in gammas:
 # An intermediate $\epsilon$ balances exploration and what he has learned.
 # 
 # A $\epsilon$ -greedy policy helps agent discover useful actions while benefiting from learned Q-values.
+#
+# In our run, epsilon = 0, 0.2 and 0.5 reached the treasure in 96/100 episodes, 0.8 in 72/100, and 0.99 and 1.0 only in about 25/100. Lower epsilon works best here since ties between equal Q-values are broken randomly, even epsilon = 0 explores at the start. With a high epsilon, the knight moves randomly and often runs out of steps.
 
 # %% 
 def make_epsilon_policy(epsilon):
@@ -365,7 +370,7 @@ vis_12.show(states, actions, tricky_knight.q_values)
 # 1. Directly to treasure : the knight reaches the treasure after 5 moves.
 # $$V_1=0.95^4\approx0.8145$$
 # 2. Repeatedly collecting meat : the knight reaches the meat after 3 moves and can collect +0.5 repeatedly by staying on that cell. Over 49 moves : 
-# $$V_2=0.5\sum_{t=2}^{48}0.95^t\approx8.2151$$
+# $$V_2=0.5\sum_{t=2}^{49}0.95^t\approx8.2151$$
 # 3. Meat and then treasure : the knight collects meat on move 3 and reaches the treasure on move 11.
 # $$V_3=0.5(0.95^2)+0.95^{10}\approx1.0500$$
 # Therefore = 
