@@ -54,7 +54,7 @@ vis_11.show(states, actions, drunken_knight.q_values)
 # ### (b)
 # > Observe how you move and draw a Markov decision process (MDP) diagram for all four non-wall states.
 #
-#![MDP Diagram](1.1b-diagram.jpg) 
+# ![MDP Diagram](1.1b-diagram.jpg)
 
 # %% [markdown]
 # ### (c)
